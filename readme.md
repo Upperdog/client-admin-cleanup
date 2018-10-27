@@ -32,8 +32,11 @@ This plugin has only been tested with ManageWP. ManageWP has to connect to the s
 
 ## Composer installation
 
-Run the following command to add the plugin to your composer.json file.
-`composer require upperdog/client-admin-cleanup`
+Run the following command to add the plugin to your composer.json file. 
+
+```
+composer require upperdog/client-admin-cleanup
+```
 
 ## Changelog
 
