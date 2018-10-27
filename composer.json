@@ -1,0 +1,19 @@
+{
+    "name": "upperdog/client-admin-cleanup",
+    "description": "This WordPress plugin hides and restricts access to some parts of the wp-admin for clients.",
+    "homepage": "https://github.com/upperdog/client-admin-cleanup",
+    "license": "GPL-2.0-or-later",
+    "type": "wordpress-plugin",
+    "authors": [
+        {
+            "name": "Upperdog",
+            "email": "hello@upperdog.com"
+        }
+    ],
+    "keywords": [
+        "wordpress"
+    ],
+    "require": {
+        "composer/installers": "^1.6"
+    }
+}

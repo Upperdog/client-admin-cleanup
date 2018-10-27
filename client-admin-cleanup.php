@@ -1,96 +1,137 @@
 <?php
 /**
  * Plugin Name: Client Admin Cleanup
- * Description: This plugin removes and cleans up some parts of the WordPress admin that should not be available to the client.
+ * Description: This WordPress plugin hides and restricts access to some parts of the wp-admin for clients.
+ * Version: 1.0.0
  * Author: Upperdog
  * Author URI: https://upperdog.com
+ * Author Email: hello@upperdog.com
+ * License: GPLv2 or later
  */
 
-if ( !function_exists( 'wp_get_current_user' ) ) {
-    include( ABSPATH . 'wp-includes/pluggable.php' );
+if ( !defined( 'ABSPATH' ) ) {
+	exit;
 }
 
-function client_admin_cleanup_get_users() {
-	$client_admin_cleanup_users = array(
-		'super_admins' => get_super_admins(), 
-		'current_user' => wp_get_current_user(), 
-	);
+class Client_Admin_Cleanup {
 	
-	return $client_admin_cleanup_users;
-}
-
-class ClientAdminCleanup {
-	
+	/**
+	 * Construct
+	 */
 	function __construct() {
-		$client_admin_cleanup_users = client_admin_cleanup_get_users();
+		add_action( 'admin_init', array( $this, 'block_admin_pages') );
+		add_action( 'admin_menu', array( $this, 'remove_admin_menu_items' ) );
+		add_action( 'admin_bar_menu', array( $this, 'remove_admin_bar_customize_link' ), 999 );
+		add_action( 'customize_register', array( $this, 'remove_customizer_custom_css' ), 15 );
+		add_action( 'wp_dashboard_setup', array( $this, 'remove_dashboard_widgets' ) );
+	}
+	
+	/**
+	 * Check if current user is allowed
+	 */
+	function allow_current_user() {
+		$current_user = wp_get_current_user();
+		$default_user_id = 1;
+
+		if ( is_a( get_user_by( 'ID', $default_user_id ), 'WP_User' ) ) {
+			$default_user = get_user_by( 'ID', $default_user_id );
+			$default_allowed_users = array( $default_user->data->user_login );
+		} else {
+			$default_allowed_users = array();
+		}
 		
-		if ( !in_array( $client_admin_cleanup_users[ 'current_user' ]->user_login, $client_admin_cleanup_users[ 'super_admins' ] ) ) {
-			
-			if ( is_admin() ) {
-				add_action( 'admin_init', array( $this, 'disallowed_admin_pages') );
-				add_action( 'admin_bar_menu', array( $this, 'remove_admin_bar_customize_link' ), 999 );
-				add_action( 'admin_menu', array( $this, 'remove_admin_menu_items' ) );
-				add_action( 'customize_register', array( $this, 'remove_customizer_custom_css' ), 15 );
-				add_action( 'wp_dashboard_setup', array( $this, 'remove_dashboard_widgets' ) );
-			}
-			
-			$this->disallow_file_edit_and_mods();
+		$allowed_users = apply_filters( 'client_admin_cleanup_allowed_users', $default_allowed_users );
+		
+		if ( in_array( $current_user->user_login, $allowed_users ) ) {
+			return true;
+		} else {
+			return false;
 		}
 	}
 	
+	/**
+	 * Remove admin menu items
+	 */
 	function remove_admin_menu_items() {
 		
-		// Dashboard -> Plugins
-		remove_submenu_page( 'index.php', 'update-core.php' );
+		global $submenu; 
 		
-		// Jetpack
-		remove_menu_page( 'jetpack' );
-		
-		// Themes
-		remove_submenu_page( 'themes.php', 'themes.php' );
-		
-		//  Plugins
-		remove_menu_page( 'plugins.php' );
-	}
-	
-	function disallow_file_edit_and_mods() {
-		
-		// Disallow file edit
-		if ( !defined( 'DISALLOW_FILE_EDIT' ) ) {
-			define( 'DISALLOW_FILE_EDIT', true );
-		}
-		
-		// Disallow file mods
-		if ( !defined( 'DISALLOW_FILE_MODS' ) ) {
-			define( 'DISALLOW_FILE_MODS', true );
+		if ( !$this->allow_current_user() ) {
+			
+			// Dashboard -> Plugins
+			remove_submenu_page( 'index.php', 'update-core.php' );
+			
+			// Jetpack
+			remove_menu_page( 'jetpack' );
+			
+			// Customize
+			unset( $submenu[ 'themes.php' ][ 6 ] );
+			
+			// Themes
+			remove_submenu_page( 'themes.php', 'themes.php' );
+			
+			//  Plugins
+			remove_menu_page( 'plugins.php' );
 		}
 	}
 	
+	/**
+	 * Remove admin bar customize link
+	 */
 	function remove_admin_bar_customize_link( $wp_admin_bar ) {
-	    $wp_admin_bar->remove_menu( 'customize' );
+		
+		if ( !$this->allow_current_user() ) {
+	    	$wp_admin_bar->remove_menu( 'customize' );
+	    }
 	}
 	
+	/**
+	 * Remove customizer custom CSS
+	 */
 	function remove_customizer_custom_css( $wp_customize ) {
-		$wp_customize->remove_section( 'custom_css' );
-	}
-	
-	function disallowed_admin_pages() {
-		global $pagenow;
 		
-		$disallowed_pages = array( 'themes.php', 'plugins.php', 'update-core.php' );
-		
-		if ( in_array( $pagenow, $disallowed_pages ) ) {
-			wp_redirect( admin_url( '/' ) );
-			exit;
+		if ( !$this->allow_current_user() ) {
+			$wp_customize->remove_section( 'custom_css' );
 		}
 	}
 	
+	/**
+	 * Block admin pages
+	 */
+	function block_admin_pages() {
+		
+		if ( !$this->allow_current_user() ) {
+			
+			global $pagenow;
+			
+			$blocked_admin_pages = array( 
+				'customize.php', 
+				'plugins.php', 
+				'plugin-install.php', 
+				'plugin-editor.php', 
+				'themes.php', 
+				'update-core.php'
+			);
+			
+			if ( in_array( $pagenow, $blocked_admin_pages ) ) {
+				wp_redirect( admin_url( '/' ) );
+				exit;
+			}
+		}
+	}
+	
+	/**
+	 * Remove dashboard widgets
+	 */
 	function remove_dashboard_widgets () {
-		remove_meta_box( 'dashboard_primary','dashboard','side' );
-		remove_meta_box( 'dashboard_secondary','dashboard','side' );
-		remove_meta_box( 'dashboard_plugins','dashboard','normal' );
-		remove_action( 'welcome_panel','wp_welcome_panel' );
+		
+		if ( !$this->allow_current_user() ) {
+			remove_meta_box( 'dashboard_primary','dashboard','side' );
+			remove_meta_box( 'dashboard_secondary','dashboard','side' );
+			remove_meta_box( 'dashboard_plugins','dashboard','normal' );
+			remove_action( 'welcome_panel','wp_welcome_panel' );
+		}
 	}
 }
 
-$client_admin_cleanup = new ClientAdminCleanup();
+$client_admin_cleanup = new Client_Admin_Cleanup();
