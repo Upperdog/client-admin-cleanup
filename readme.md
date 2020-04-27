@@ -1,6 +1,6 @@
 # Client Admin Cleanup
 
-This WordPress plugin hides and restricts access to some parts of the wp-admin for clients. For example, it hides and restricts access to the plugins, themes, and updates sections. Developers and agencies who maintain their client's sites usually want to have full control of these parts of the site.
+This WordPress plugin hides and restricts access to some parts of the wp-admin for clients. It's like cleaning up the UI of things they don't need. For example, it hides and restricts access to the plugins, themes, and updates sections. Developers and agencies who maintain their client's sites usually want to have full control of these parts of the site.
 
 ___This plugin is not released in the official WordPress Plugins directory. It is developed for our own needs. We will not be able provide support for this plugin. Please fork the plugin if you want to customize it to your own needs.___
 
@@ -39,6 +39,12 @@ composer require upperdog/client-admin-cleanup
 ```
 
 ## Changelog
+
+### 1.1.0 (2020-04-27)
+
+* Block access to more admin pages.
+* Remove admin menu items for tools, settings.
+* Minor refactoring and code cleanup.
 
 ### 1.0.0 (2018-10-27)
 
